@@ -1,0 +1,111 @@
+Trong thời đại số hóa và khối lượng thông tin khổng lồ hiện nay, việc ghi
+nhớ và hiểu sâu kiến thức trở thành một thách thức đối với học sinh, sinh viên và
+cả người đi làm. Phương pháp học truyền thống như đọc – chép, học vẹt, hoặc
+ghi nhớ thụ động ngày càng bộc lộ nhiều hạn chế: nhàm chán, kém hiệu quả,
+thiếu sự tương tác và không mang lại khả năng ghi nhớ lâu dài.
+Mặc dù có rất nhiều tài liệu học tập và ứng dụng hỗ trợ học trực tuyến,
+hầu hết đều chỉ dừng lại ở việc cung cấp nội dung. Việc tạo câu hỏi luyện tập
+hoặc kiểm tra mức độ ghi nhớ, hiểu biết vẫn phụ thuộc nhiều vào người học,
+hoặc người dạy. Điều này gây tốn thời gian và làm giảm hứng thú học tập.
+Ngoài ra, người học cũng thiếu môi trường tương tác để học nhóm, cùng
+nhau ôn luyện và thi đua — trong khi đây là một yếu tố quan trọng giúp tăng
+động lực và hiệu quả ghi nhớ. Bên cạnh đó, phần lớn ứng dụng học tập hiện nay
+không hỗ trợ học theo mục tiêu (ví dụ: học để nhớ nhanh, học để hiểu sâu), cũng
+không tối ưu hóa hình thức câu hỏi tương ứng với từng mục tiêu học tập.
+Một số vấn đề nổi bật:
+● Việc tạo câu hỏi thủ công từ tài liệu rất mất thời gian, không phù hợp với
+nhu cầu học nhanh hoặc ôn cấp tốc.
+● Người học chưa được cá nhân hóa quá trình học theo kiểu học (học thuộc
+/ học hiểu).
+● Thiếu công cụ để học nhóm một cách hiệu quả và trực quan.
+● Không có hệ thống lưu trữ và thống kê quá trình học để theo dõi tiến độ
+và hiệu quả lâu dài.
+Từ thực trạng trên, cần có một ứng dụng học tập thông minh, hỗ trợ người
+dùng:
+● Nhập nội dung bất kỳ và tạo nhanh các câu hỏi trắc nghiệm, điền chỗ
+trống, v.v... bằng AI.
+● Lựa chọn mục tiêu học và loại câu hỏi phù hợp (ví dụ học thuộc thì ưu
+tiên trắc nghiệm/nhớ từ khóa; học hiểu thì ưu tiên câu hỏi suy luận).
+
+1
+
+● Học một mình hoặc mời bạn bè học nhóm, thi đua cùng nhau qua phòng
+học trực tuyến.
+● Ghi nhớ và học lại những nội dung đã lưu, có thống kê chi tiết quá trình
+học.
+1.2. Giải pháp
+Giải pháp hiệu quả nhất là xây dựng một hệ thống học tập thông minh
+chuyên biệt, giúp người dùng dễ dàng tự học hoặc học nhóm thông qua việc
+nhập nội dung văn bản bất kỳ và để hệ thống hỗ trợ tạo câu hỏi. Ứng dụng này
+sẽ sử dụng trí tuệ nhân tạo (AI) để tự động phân tích nội dung, tạo ra các loại
+câu hỏi phù hợp với mục tiêu học tập như: học thuộc lòng hay học hiểu.
+Hệ thống cho phép học một mình hoặc mời bạn bè cùng tham gia học
+thông qua phòng học trực tuyến. Trong quá trình học, người dùng có thể xem lại
+lịch sử học tập, học lại nội dung đã lưu, theo dõi tiến độ học, và chia sẻ nội dung
+học tập một cách dễ dàng.
+1.2.1. Miêu tả
+Các tính năng chính của hệ thống bao gồm:
+● Cho phép người dùng đăng ký, đăng nhập và quản lý hồ sơ học tập
+cá nhân.
+● Cho phép nhập nội dung cần học (văn bản, đoạn trích, tài liệu,...).
+● Cung cấp tính năng chọn mục tiêu học (học thuộc hoặc học hiểu).
+● Tự động sinh ra các câu hỏi tương ứng bằng AI (trắc nghiệm, điền
+chỗ trống, hỏi – đáp...).
+● Cho phép người dùng học theo chế độ tự học hoặc tạo phòng học
+nhóm để mời bạn bè cùng học.
+● Lưu lại lịch sử học tập, kết quả trả lời, và thống kê hiệu suất học.
+● Tích hợp phần hướng dẫn sử dụng và giao diện thân thiện để hỗ trợ
+người dùng thao tác dễ dàng.
+
+2
+
+1.2.2. Người dùng cuối
+Người dùng chính của hệ thống là:
+● Người học cá nhân: học sinh, sinh viên hoặc người đi làm có nhu
+cầu ghi nhớ hoặc hiểu nội dung một cách hiệu quả hơn.
+● Nhóm học tập: bạn bè hoặc nhóm lớp muốn cùng nhau học, ôn thi
+hoặc rèn luyện kiến thức theo nhóm.
+● Giáo viên: có thể tạo nội dung học và chia sẻ cho học viên, theo dõi
+quá trình học.
+Ứng dụng đặc biệt phù hợp với:
+● Người học cần ôn thi cấp tốc hoặc muốn cải thiện khả năng ghi
+nhớ.
+● Các nhóm học muốn tạo môi trường học tập tương tác, thi đua.
+● Người học muốn lưu lại tiến độ học tập, luyện tập nhiều lần và theo
+dõi sự tiến bộ theo thời gian.
+1.2.3. Các chế độ học tương ứng theo loại văn bản đầu vào
+Ứng dụng gồm có 2 chế độ học thuộc và học hiểu phù hợp với các
+hình thức văn bản đầu vào khác nhau. Cụ thể như sau:
+● Chế độ học thuộc (Memorization) phù hợp với:
+○ Từ vựng (tiếng Anh, chuyên ngành, Hán Việt, v.v.)
+○ Định nghĩa, công thức
+○ Sự kiện, số liệu, mốc thời gian lịch sử
+○ Tên riêng (nhân vật, địa danh, thuật ngữ)
+○ Thơ, ca dao, danh ngôn (ghi nhớ từng chữ)
+● Chế độ học hiểu (Understanding) phù hợp với:
+○ Đoạn văn giải thích kiến thức
+○ Lý thuyết các môn học (Sinh, Sử, Địa, GDCD...)
+○ Nội dung học dài có cấu trúc (slide, giáo trình)
+○ Các quy trình, bước thực hiện (VD: quy tắc hoá học)
+○ Tình huống yêu cầu phân tích câu từ (văn, Anh văn)
+
+3
+
+Người dùng sẽ dựa trên loại kiến thức mà mình muốn học tập để
+chọn chế độ tương ứng. Sau khi lựa chọn hệ thống sẽ cho ra những dạng
+bài phù hợp nhất với mục tiêu của người dùng và cho phép người dùng
+tùy chỉnh (dạng bài, số lượng câu mỗi dạng, thứ tự các câu,..) tùy theo
+mong muốn.
+Các loại câu hỏi theo từng mục tiêu như sau:
+Đối với Học thuộc:
+● Điền vào chỗ trống (Fill in the Blank)
+● Trắc nghiệm từ bị thiếu (Missing Word Multiple Choice)
+● Trắc nghiệm nội dung văn bản (Content-based Multiple Choice)
+● Flashcard
+● Gõ lại chính xác (Exact Typing)
+Đối với Học hiểu:
+● Trắc nghiệm nội dung văn bản (Content-based Multiple Choice)
+● Đúng / Sai (True/False)
+● Ghép ý tương ứng (Match Concepts)
+● Tự luận ngắn (Short Answer)
+
