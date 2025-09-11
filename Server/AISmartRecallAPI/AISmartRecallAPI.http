@@ -1,0 +1,6 @@
+@AISmartRecallAPI_HostAddress = http://localhost:5011
+
+GET {{AISmartRecallAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
