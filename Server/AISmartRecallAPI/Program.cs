@@ -1,5 +1,6 @@
 using AISmartRecallAPI.Data;
 using AISmartRecallAPI.Services;
+using AISmartRecallAPI.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -9,11 +10,26 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Add HttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+
 // Configure MongoDB
 builder.Services.AddSingleton<MongoDBContext>();
 
+// Configure Repositories
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IContentRepository, ContentRepository>();
+builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+builder.Services.AddScoped<ILearningSessionRepository, LearningSessionRepository>();
+
 // Configure Services
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IContentService, ContentService>();
+builder.Services.AddScoped<IQuestionService, QuestionService>();
+builder.Services.AddScoped<ILearningService, LearningService>();
+
+// Configure HttpClient for AI services
+builder.Services.AddHttpClient();
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "your-super-secret-jwt-key-for-ai-smart-recall-that-is-at-least-64-characters-long-and-secure-for-production-use-2024";

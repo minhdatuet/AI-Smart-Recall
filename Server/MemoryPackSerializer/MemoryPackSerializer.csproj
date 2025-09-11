@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- Build ra DLL, không phải exe -->
+		<OutputType>Library</OutputType>
+		<!-- Nên chọn netstandard2.1 để Unity dùng được -->
+		<TargetFramework>netstandard2.1</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>MemoryPackSerializer</RootNamespace>
+		<AssemblyName>MemoryPackSerializer</AssemblyName>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MemoryPack" Version="1.21.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\AISmartRecall.SharedModels\AISmartRecall.SharedModels.csproj" />
+	</ItemGroup>
+
+</Project>

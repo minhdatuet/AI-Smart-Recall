@@ -20,8 +20,9 @@ namespace AISmartRecallAPI.Data
         public IMongoCollection<User> Users => _database.GetCollection<User>("users");
         public IMongoCollection<Content> Contents => _database.GetCollection<Content>("contents");
         public IMongoCollection<Question> Questions => _database.GetCollection<Question>("questions");
-        public IMongoCollection<LearningRoom> Rooms => _database.GetCollection<LearningRoom>("rooms");
-        public IMongoCollection<LearningSession> Sessions => _database.GetCollection<LearningSession>("sessions");
+        public IMongoCollection<LearningRoom> LearningRooms => _database.GetCollection<LearningRoom>("learningRooms");
+        public IMongoCollection<LearningSession> LearningSessions => _database.GetCollection<LearningSession>("learningSessions");
+        public IMongoCollection<UserProgress> UserProgress => _database.GetCollection<UserProgress>("userProgress");
 
         // Indexes setup method
         public async Task CreateIndexesAsync()
@@ -42,11 +43,16 @@ namespace AISmartRecallAPI.Data
             // Room indexes
             var roomCodeIndex = Builders<LearningRoom>.IndexKeys.Ascending(r => r.Code);
             var roomCodeOptions = new CreateIndexOptions { Unique = true };
-            await Rooms.Indexes.CreateOneAsync(new CreateIndexModel<LearningRoom>(roomCodeIndex, roomCodeOptions));
+            await LearningRooms.Indexes.CreateOneAsync(new CreateIndexModel<LearningRoom>(roomCodeIndex, roomCodeOptions));
 
             // Session indexes
             var sessionUserIdIndex = Builders<LearningSession>.IndexKeys.Ascending(s => s.UserId);
-            await Sessions.Indexes.CreateOneAsync(new CreateIndexModel<LearningSession>(sessionUserIdIndex));
+            await LearningSessions.Indexes.CreateOneAsync(new CreateIndexModel<LearningSession>(sessionUserIdIndex));
+            
+            // Progress indexes
+            var progressUserIdIndex = Builders<UserProgress>.IndexKeys.Ascending(p => p.UserId);
+            var progressUserIdOptions = new CreateIndexOptions { Unique = true };
+            await UserProgress.Indexes.CreateOneAsync(new CreateIndexModel<UserProgress>(progressUserIdIndex, progressUserIdOptions));
         }
     }
 }

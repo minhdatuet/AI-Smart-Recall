@@ -60,33 +60,4 @@ namespace AISmartRecallAPI.Models
         public string DefaultLearningMode { get; set; } = "understanding";
     }
 
-    // DTOs for API responses
-    public class LoginRequest
-    {
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-    }
-
-    public class RegisterRequest
-    {
-        public string Username { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-        public string DisplayName { get; set; } = string.Empty;
-    }
-
-    public class LoginResponse
-    {
-        public string Token { get; set; } = string.Empty;
-        public UserInfo User { get; set; } = new UserInfo();
-    }
-
-    public class UserInfo
-    {
-        public string Id { get; set; } = string.Empty;
-        public string Username { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public UserProfile Profile { get; set; } = new UserProfile();
-        public AISettings AISettings { get; set; } = new AISettings();
-    }
 }

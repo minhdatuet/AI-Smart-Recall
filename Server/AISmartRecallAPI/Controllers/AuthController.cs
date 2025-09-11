@@ -1,3 +1,5 @@
+using AISmartRecall.SharedModels.DTOs;
+using AISmartRecallAPI.Data;
 using AISmartRecallAPI.Models;
 using AISmartRecallAPI.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -6,14 +8,19 @@ using System.Security.Claims;
 
 namespace AISmartRecallAPI.Controllers
 {
-    [ApiController]
     [Route("api/[controller]")]
-    public class AuthController : ControllerBase
+    public class AuthController : BaseController
     {
         private readonly IUserService _userService;
         private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IUserService userService, ILogger<AuthController> logger)
+        public AuthController(
+            IUserService userService,
+            IHttpContextAccessor httpContextAccessor,
+            IConfiguration config,
+            MongoDBContext dbContext,
+            ILogger<AuthController> logger
+        ) : base(httpContextAccessor, config, dbContext, logger)
         {
             _userService = userService;
             _logger = logger;
@@ -25,7 +32,7 @@ namespace AISmartRecallAPI.Controllers
         /// <param name="request">Login request with email and password</param>
         /// <returns>Login response with JWT token and user info</returns>
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] LoginRequestDTO request)
         {
             try
             {
@@ -60,17 +67,16 @@ namespace AISmartRecallAPI.Controllers
         /// <param name="request">Registration request with user details</param>
         /// <returns>User info if registration successful</returns>
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDTO request)
         {
             try
             {
                 // Validate request
                 if (string.IsNullOrEmpty(request.Email) || 
                     string.IsNullOrEmpty(request.Password) ||
-                    string.IsNullOrEmpty(request.Username) ||
-                    string.IsNullOrEmpty(request.DisplayName))
+                    string.IsNullOrEmpty(request.Username))
                 {
-                    return BadRequest(new { message = "All fields are required" });
+                    return BadRequest(new { message = "Email, password, and username are required" });
                 }
 
                 // Validate email format
@@ -144,7 +150,7 @@ namespace AISmartRecallAPI.Controllers
         /// <returns>Updated user information</returns>
         [HttpPut("profile")]
         [Authorize]
-        public async Task<IActionResult> UpdateProfile([FromBody] UserInfo userInfo)
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequestDTO request)
         {
             try
             {
@@ -156,12 +162,12 @@ namespace AISmartRecallAPI.Controllers
                 }
 
                 // Validate request
-                if (userInfo == null)
+                if (request == null)
                 {
-                    return BadRequest(new { message = "User info is required" });
+                    return BadRequest(new { message = "Request is required" });
                 }
 
-                var result = await _userService.UpdateUserAsync(userId, userInfo);
+                var result = await _userService.UpdateUserAsync(userId, request);
 
                 if (result == null)
                 {
@@ -186,7 +192,7 @@ namespace AISmartRecallAPI.Controllers
         /// <returns>Success message</returns>
         [HttpPut("api-keys")]
         [Authorize]
-        public async Task<IActionResult> UpdateAPIKeys([FromBody] Dictionary<string, string> apiKeys)
+        public async Task<IActionResult> UpdateAPIKeys([FromBody] UpdateAPIKeysRequestDTO request)
         {
             try
             {
@@ -197,21 +203,12 @@ namespace AISmartRecallAPI.Controllers
                     return Unauthorized(new { message = "Invalid token" });
                 }
 
-                if (apiKeys == null)
+                if (request == null)
                 {
-                    return BadRequest(new { message = "API keys are required" });
+                    return BadRequest(new { message = "API keys request is required" });
                 }
 
-                // Validate supported AI providers
-                var supportedProviders = new[] { "chatgpt", "gemini", "qwen" };
-                var invalidProviders = apiKeys.Keys.Where(key => !supportedProviders.Contains(key.ToLower())).ToList();
-
-                if (invalidProviders.Any())
-                {
-                    return BadRequest(new { message = $"Unsupported AI providers: {string.Join(", ", invalidProviders)}" });
-                }
-
-                var result = await _userService.UpdateAPIKeysAsync(userId, apiKeys);
+                var result = await _userService.UpdateAPIKeysAsync(userId, request);
 
                 if (!result)
                 {
@@ -259,7 +256,7 @@ namespace AISmartRecallAPI.Controllers
                     Id = MongoDB.Bson.ObjectId.Parse(userInfo.Id),
                     Username = userInfo.Username,
                     Email = userInfo.Email,
-                    Profile = userInfo.Profile
+                    Profile = new UserProfile { DisplayName = userInfo.DisplayName }
                 };
 
                 var newToken = await _userService.GenerateJwtTokenAsync(user);
@@ -343,7 +340,7 @@ namespace AISmartRecallAPI.Controllers
             return Ok(providers);
         }
 
-        private bool IsValidEmail(string email)
+        private new bool IsValidEmail(string email)
         {
             try
             {
