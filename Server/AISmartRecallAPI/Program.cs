@@ -16,8 +16,11 @@ builder.Services.AddSingleton<MongoDBContext>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 // Configure JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "your-secret-key-here-make-it-very-long-and-secure-for-production";
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "your-super-secret-jwt-key-for-ai-smart-recall-that-is-at-least-64-characters-long-and-secure-for-production-use-2024";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AISmartRecall";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AISmartRecall";
+
+Console.WriteLine($"JWT Configuration: Key length: {jwtKey.Length}, Issuer: {jwtIssuer}, Audience: {jwtAudience}");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -29,9 +32,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer,
-            ValidAudience = jwtIssuer,
+            ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.FromMinutes(5) // Allow 5 minutes clock skew
+        };
+        
+        // Add event handlers for debugging
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"JWT Authentication failed: {context.Exception.Message}");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine($"JWT Token validated for user: {context.Principal?.Identity?.Name}");
+                return Task.CompletedTask;
+            }
         };
     });
 

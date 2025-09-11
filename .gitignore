@@ -50,8 +50,6 @@ Desktop.ini
 # =============== #
 # AI Smart Recall specific #
 # =============== #
-# Server files (if any)
-/Server/
 
 # AI model cache
 /Models/

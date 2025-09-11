@@ -1,0 +1,122 @@
+### AI Smart Recall API Test Scripts
+### Use this file with REST Client extension in VS Code
+### Or copy the curl commands to test manually
+
+@baseUrl = https://localhost:7000
+@httpUrl = http://localhost:5000
+
+### 1. Test Server Health (Get AI Providers - no auth required)
+GET {{httpUrl}}/api/auth/ai-providers
+Accept: application/json
+
+###
+
+### 2. User Registration
+POST {{httpUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "password": "password123",
+  "displayName": "Test User"
+}
+
+###
+
+### 3. User Login
+POST {{httpUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+
+### 4. Get User Profile (requires auth token from login)
+GET {{httpUrl}}/api/auth/profile
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Accept: application/json
+
+###
+
+### 5. Update User Profile (requires auth token)
+PUT {{httpUrl}}/api/auth/profile
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "id": "USER_ID_HERE",
+  "username": "testuser",
+  "email": "test@example.com",
+  "profile": {
+    "displayName": "Updated Test User",
+    "avatar": "",
+    "level": 1,
+    "totalStudyTime": 0,
+    "streak": 0
+  },
+  "aiSettings": {
+    "preferredAI": "chatgpt",
+    "defaultLearningMode": "understanding",
+    "apiKeys": {}
+  }
+}
+
+###
+
+### 6. Update API Keys (requires auth token)
+PUT {{httpUrl}}/api/auth/api-keys
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "chatgpt": "sk-test-api-key-for-chatgpt",
+  "gemini": "test-gemini-api-key",
+  "qwen": "test-qwen-api-key"
+}
+
+###
+
+### 7. Validate Token (requires auth token)
+GET {{httpUrl}}/api/auth/validate
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Accept: application/json
+
+###
+
+### 8. Refresh Token (requires auth token)
+POST {{httpUrl}}/api/auth/refresh
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Accept: application/json
+
+###
+
+### 9. Logout (requires auth token)
+POST {{httpUrl}}/api/auth/logout
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Accept: application/json
+
+###
+
+### CURL Commands for manual testing:
+
+# 1. Get AI Providers
+# curl -X GET "http://localhost:5000/api/auth/ai-providers" -H "Accept: application/json"
+
+# 2. Register User
+# curl -X POST "http://localhost:5000/api/auth/register" \
+#   -H "Content-Type: application/json" \
+#   -d '{"username":"testuser","email":"test@example.com","password":"password123","displayName":"Test User"}'
+
+# 3. Login User  
+# curl -X POST "http://localhost:5000/api/auth/login" \
+#   -H "Content-Type: application/json" \
+#   -d '{"email":"test@example.com","password":"password123"}'
+
+# 4. Get Profile (replace YOUR_TOKEN with actual JWT token)
+# curl -X GET "http://localhost:5000/api/auth/profile" \
+#   -H "Authorization: Bearer YOUR_TOKEN" \
+#   -H "Accept: application/json"

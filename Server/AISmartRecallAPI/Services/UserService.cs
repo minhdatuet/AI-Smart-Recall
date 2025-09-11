@@ -238,9 +238,13 @@ namespace AISmartRecallAPI.Services
 
         public async Task<string> GenerateJwtTokenAsync(User user)
         {
-            var jwtKey = _configuration["Jwt:Key"] ?? "your-secret-key-here-make-it-very-long-and-secure";
+            var jwtKey = _configuration["Jwt:Key"] ?? "your-super-secret-jwt-key-for-ai-smart-recall-that-is-at-least-64-characters-long-and-secure-for-production-use-2024";
             var jwtIssuer = _configuration["Jwt:Issuer"] ?? "AISmartRecall";
+            var jwtAudience = _configuration["Jwt:Audience"] ?? "AISmartRecall";
             var jwtExpireMinutes = _configuration.GetValue<int>("Jwt:ExpireMinutes", 1440); // 24 hours default
+
+            _logger.LogDebug("Generating JWT with Key length: {KeyLength}, Issuer: {Issuer}, Audience: {Audience}", 
+                jwtKey.Length, jwtIssuer, jwtAudience);
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -251,18 +255,24 @@ namespace AISmartRecallAPI.Services
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim("displayName", user.Profile.DisplayName),
-                new Claim("level", user.Profile.Level.ToString())
+                new Claim("level", user.Profile.Level.ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
 
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,
-                audience: jwtIssuer,
+                audience: jwtAudience,
                 claims: claims,
+                notBefore: DateTime.UtcNow,
                 expires: DateTime.UtcNow.AddMinutes(jwtExpireMinutes),
                 signingCredentials: credentials
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+            _logger.LogDebug("JWT token generated successfully with length: {TokenLength}", tokenString.Length);
+            
+            return tokenString;
         }
 
         private UserInfo MapToUserInfo(User user)
