@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
-	 <LangVersion>latest</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <RootNamespace>AISmartRecall.SharedModels</RootNamespace>
-    <AssemblyName>AISmartRecall.SharedModels</AssemblyName>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <OutputType>Library</OutputType>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;netstandard2.1</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>AISmartRecall.SharedModels</RootNamespace>
+		<AssemblyName>AISmartRecall.SharedModels</AssemblyName>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+		<OutputType>Library</OutputType>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="MemoryPack" Version="1.21.1" />
-    <PackageReference Include="MemoryPack.Generator" Version="1.21.1" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="MemoryPack" Version="1.21.1" />
+		<PackageReference Include="MemoryPack.Generator" Version="1.21.1" />
+	</ItemGroup>
 
 </Project>

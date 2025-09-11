@@ -30,7 +30,6 @@ $Global:SharedModelsBinPath = Join-Path $Global:ProjectRoot "AISmartRecall.Share
 # Danh sach cac file DLL can copy
 $Global:FilesToCopy = @(
     "AISmartRecall.SharedModels.dll",
-    "MemoryPack.Core.dll",
     "MemoryPackSerializer.dll"
 )
 

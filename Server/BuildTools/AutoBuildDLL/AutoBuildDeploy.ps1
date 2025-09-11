@@ -58,19 +58,8 @@ try {
         Write-Step "Bo qua build solution (-SkipBuild)"
     }
 
-    Write-Step "Buoc 2: Chay MemoryPackSerializer.exe..."
-    if (-not (Test-Path $Global:MemoryPackBinPath)) { Write-ErrorMsg "Khong tim thay thu muc: $Global:MemoryPackBinPath"; exit 1 }
-    $exePath = Join-Path $Global:MemoryPackBinPath $Global:ExeName
-    if (-not (Test-Path $exePath)) { Write-ErrorMsg "Khong tim thay file: $exePath"; exit 1 }
 
-    Push-Location $Global:MemoryPackBinPath
-    if ($Verbose) { & ".\$($Global:ExeName)" } else { & ".\$($Global:ExeName)" | Out-Null }
-    $exeExit = $LASTEXITCODE
-    Pop-Location
-    if ($exeExit -ne 0) { Write-ErrorMsg "Chay MemoryPackSerializer that bai!"; exit 1 }
-    Write-Success "Chay MemoryPackSerializer thanh cong!"
-
-    Write-Step "Buoc 3: Copy cac file DLL sang Unity..."
+    Write-Step "Buoc 2: Copy cac file DLL sang Unity..."
     if (-not (Test-Path $Global:UnityDLLPath)) { New-Item -ItemType Directory -Path $Global:UnityDLLPath -Force | Out-Null }
 
     $copyStats = @{ New = 0; Updated = 0; Skipped = 0 }
