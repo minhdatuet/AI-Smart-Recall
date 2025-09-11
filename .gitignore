@@ -55,7 +55,11 @@ Desktop.ini
 /Cache/
 
 #Builds
-/bin/
+# Ignore all bin and obj folders everywhere
+bin/
+**/bin/
+**/obj/
+obj/
 
 # Log files
 *.log
