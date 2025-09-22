@@ -155,7 +155,7 @@ namespace AISmartRecallAPI.Services
                     },
                     AISettings = new AISettings
                     {
-                        PreferredAI = AIProviders.OpenAI,
+                        PreferredAI = AIProviders.OpenRouter,
                         DefaultLearningMode = LearningModes.Understanding,
                         APIKeys = new Dictionary<string, string>()
                     },
@@ -270,14 +270,10 @@ namespace AISmartRecallAPI.Services
                     return false;
                 }
 
-                // Update API keys (encrypt before storing)
+                // Update OpenRouter API key (encrypt before storing)
                 var apiKeys = new Dictionary<string, string>();
-                if (!string.IsNullOrEmpty(request.OpenAIKey))
-                    apiKeys[AIProviders.OpenAI] = request.OpenAIKey;
-                if (!string.IsNullOrEmpty(request.GeminiKey))
-                    apiKeys[AIProviders.Gemini] = request.GeminiKey;
-                if (!string.IsNullOrEmpty(request.QwenKey))
-                    apiKeys[AIProviders.Qwen] = request.QwenKey;
+                if (!string.IsNullOrEmpty(request.OpenRouterKey))
+                    apiKeys[AIProviders.OpenRouter] = request.OpenRouterKey;
 
                 user.AISettings.APIKeys = EncryptAPIKeys(apiKeys);
                 user.LastActive = DateTime.UtcNow;
@@ -333,31 +329,15 @@ namespace AISmartRecallAPI.Services
                 {
                     new AIProviderDTO
                     {
-                        Name = AIProviders.OpenAI,
-                        DisplayName = "OpenAI ChatGPT",
-                        Description = "OpenAI's GPT models - excellent for English content and general knowledge",
+                        Name = AIProviders.OpenRouter,
+                        DisplayName = "OpenRouter",
+                        Description = "OpenRouter - Access to multiple AI models including OpenAI GPT, Anthropic Claude, Google Gemini, and more with a single API key",
                         IsAvailable = true,
-                        SupportedLanguages = new List<string> { "en", "vi", "fr", "es", "de", "ja", "ko", "zh" }
-                    },
-                    new AIProviderDTO
-                    {
-                        Name = AIProviders.Gemini,
-                        DisplayName = "Google Gemini",
-                        Description = "Google's Gemini Pro - great for multilingual content and complex text",
-                        IsAvailable = true,
-                        SupportedLanguages = new List<string> { "vi", "en", "zh", "ja", "ko", "fr", "es", "de" }
-                    },
-                    new AIProviderDTO
-                    {
-                        Name = AIProviders.Qwen,
-                        DisplayName = "Alibaba Qwen",
-                        Description = "Alibaba's Qwen models - specialized in Vietnamese and Chinese content",
-                        IsAvailable = true,
-                        SupportedLanguages = new List<string> { "vi", "zh", "en" }
+                        SupportedLanguages = new List<string> { "en", "vi", "fr", "es", "de", "ja", "ko", "zh", "ru", "pt", "it" }
                     }
                 };
 
-                string userPreferredProvider = AIProviders.OpenAI;
+                string userPreferredProvider = AIProviders.OpenRouter;
                 
                 if (!string.IsNullOrEmpty(userId))
                 {
@@ -377,7 +357,7 @@ namespace AISmartRecallAPI.Services
                 return new GetAIProvidersResponseDTO
                 {
                     Providers = new List<AIProviderDTO>(),
-                    UserPreferredProvider = AIProviders.OpenAI
+                    UserPreferredProvider = AIProviders.OpenRouter
                 };
             }
         }

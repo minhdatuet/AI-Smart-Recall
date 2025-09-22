@@ -230,6 +230,8 @@ namespace AISmartRecall.SharedModels.DTOs
 
     public static class AIProviders
     {
+        public const string OpenRouter = "openrouter";
+        // Legacy providers (kept for backward compatibility)
         public const string OpenAI = "openai";
         public const string Gemini = "gemini";
         public const string Qwen = "qwen";

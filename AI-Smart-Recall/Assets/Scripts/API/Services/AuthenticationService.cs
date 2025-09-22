@@ -5,6 +5,7 @@ using UnityEngine;
 using Cysharp.Threading.Tasks;
 using AISmartRecall.API.Utils;
 using AISmartRecall.SharedModels.DTOs;
+using Newtonsoft.Json;
 
 namespace AISmartRecall.API.Services
 {
@@ -76,7 +77,12 @@ namespace AISmartRecall.API.Services
                 };
                 
                 string url = APIConfig.GetFullURL(APIConfig.Endpoints.REGISTER);
-                var response = await HTTPClient.PostAsync<RegisterResponseDTO>(url, request, null, cancellationToken);
+                (var response, long statusCode) = await UniTaskWebRequest.PostAsync<RegisterResponseDTO>(url, null, null, request);
+                
+                if (response == null)
+                {
+                    throw new Exception($"Registration failed with status code: {statusCode}");
+                }
                 
                 APIConfig.LogDebug($"Registration result: {response.Success}");
                 return response;
@@ -104,7 +110,15 @@ namespace AISmartRecall.API.Services
                 };
                 
                 string url = APIConfig.GetFullURL(APIConfig.Endpoints.LOGIN);
-                var response = await HTTPClient.PostAsync<LoginResponseDTO>(url, request, null, cancellationToken);
+                (var response, long statusCode) = await UniTaskWebRequest.PostAsync<LoginResponseDTO>(url, null, null, request);
+                
+                if (response == null)
+                {
+                    string message = $"Login failed with status code: {statusCode}";
+                    APIConfig.LogError(message);
+                    OnLoginFailed?.Invoke(message);
+                    throw new Exception(message);
+                }
                 
                 if (response.Success)
                 {
@@ -150,9 +164,8 @@ namespace AISmartRecall.API.Services
                 
                 // Gọi logout endpoint
                 string url = APIConfig.GetFullURL(APIConfig.Endpoints.LOGOUT);
-                var headers = HTTPClient.CreateAuthHeaders(CurrentToken);
                 
-                await HTTPClient.PostAsync<object>(url, null, headers, cancellationToken);
+                await UniTaskWebRequest.PostAsync<object>(url, "Bearer", CurrentToken);
                 
                 // Clear local data
                 ClearLocalData();
@@ -180,9 +193,18 @@ namespace AISmartRecall.API.Services
                     throw new Exception("User not logged in");
                 
                 string url = APIConfig.GetFullURL(APIConfig.Endpoints.PROFILE);
-                var headers = HTTPClient.CreateAuthHeaders(CurrentToken);
                 
-                var profile = await HTTPClient.GetAsync<UserProfileDTO>(url, headers, cancellationToken);
+                // Sử dụng RetryWithTokenRefresh để tự động retry khi gặp lỗi 401
+                var (profile, statusCode) = await RetryWithTokenRefresh(async () => 
+                {
+                    return await UniTaskWebRequest.GetAsync<UserProfileDTO>(url, "Bearer", CurrentToken);
+                });
+                
+                if (profile == null)
+                {
+                    throw new Exception($"Failed to get profile with status code: {statusCode}");
+                }
+                
                 CurrentUser = profile;
                 
                 return profile;
@@ -212,9 +234,18 @@ namespace AISmartRecall.API.Services
                 };
                 
                 string url = APIConfig.GetFullURL(APIConfig.Endpoints.PROFILE);
-                var headers = HTTPClient.CreateAuthHeaders(CurrentToken);
                 
-                var updatedProfile = await HTTPClient.PutAsync<UserProfileDTO>(url, request, headers, cancellationToken);
+                // Sử dụng RetryWithTokenRefresh để tự động retry khi gặp lỗi 401
+                var (updatedProfile, statusCode) = await RetryWithTokenRefresh(async () => 
+                {
+                    return await UniTaskWebRequest.PutAsync<UserProfileDTO>(url, "Bearer", CurrentToken, request);
+                });
+                
+                if (updatedProfile == null)
+                {
+                    throw new Exception($"Failed to update profile with status code: {statusCode}");
+                }
+                
                 CurrentUser = updatedProfile;
                 
                 return updatedProfile;
@@ -227,9 +258,9 @@ namespace AISmartRecall.API.Services
         }
         
         /// <summary>
-        /// Cập nhật API keys
+        /// Cập nhật API key cho OpenRouter
         /// </summary>
-        public async UniTask UpdateAPIKeysAsync(Dictionary<string, string> apiKeys, CancellationToken cancellationToken = default)
+        public async UniTask UpdateAPIKeysAsync(string openRouterKey, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -238,15 +269,21 @@ namespace AISmartRecall.API.Services
                 
                 var request = new UpdateAPIKeysRequestDTO
                 {
-                    OpenAIKey = apiKeys.GetValueOrDefault("openai"),
-                    GeminiKey = apiKeys.GetValueOrDefault("gemini"),
-                    QwenKey = apiKeys.GetValueOrDefault("qwen")
+                    OpenRouterKey = openRouterKey
                 };
                 
                 string url = APIConfig.GetFullURL(APIConfig.Endpoints.API_KEYS);
-                var headers = HTTPClient.CreateAuthHeaders(CurrentToken);
                 
-                await HTTPClient.PutAsync<object>(url, request, headers, cancellationToken);
+                // Sử dụng RetryWithTokenRefresh để tự động retry khi gặp lỗi 401
+                var (response, statusCode) = await RetryWithTokenRefresh(async () => 
+                {
+                    return await UniTaskWebRequest.PutAsync<object>(url, "Bearer", CurrentToken, request);
+                });
+                
+                if (statusCode != 200)
+                {
+                    throw new Exception($"Failed to update API keys with status code: {statusCode}");
+                }
                 
                 APIConfig.LogDebug("API keys updated successfully");
             }
@@ -291,17 +328,18 @@ namespace AISmartRecall.API.Services
                 };
                 
                 string url = APIConfig.GetFullURL(APIConfig.Endpoints.REFRESH_TOKEN);
-                var response = await HTTPClient.PostAsync<RefreshTokenResponseDTO>(url, request, null, cancellationToken);
+                (var response, long statusCode) = await UniTaskWebRequest.PostAsync<RefreshTokenResponseDTO>(url, null, null, request);
                 
-                if (response.Success)
+                if (response == null || !response.Success)
                 {
-                    CurrentToken = response.Token;
-                    CurrentRefreshToken = response.RefreshToken;
-                    SaveTokens();
-                    return true;
+                    APIConfig.LogDebug($"Token refresh failed with status code: {statusCode}");
+                    return false;
                 }
                 
-                return false;
+                CurrentToken = response.Token;
+                CurrentRefreshToken = response.RefreshToken;
+                SaveTokens();
+                return true;
             }
             catch (Exception ex)
             {
@@ -318,7 +356,12 @@ namespace AISmartRecall.API.Services
             try
             {
                 string url = APIConfig.GetFullURL(APIConfig.Endpoints.AI_PROVIDERS);
-                var providers = await HTTPClient.GetAsync<AIProviderDTO[]>(url, null, cancellationToken);
+                (var providers, long statusCode) = await UniTaskWebRequest.GetAsync<AIProviderDTO[]>(url, null, null);
+                
+                if (providers == null)
+                {
+                    throw new Exception($"Failed to get AI providers with status code: {statusCode}");
+                }
                 
                 return providers;
             }
@@ -327,6 +370,49 @@ namespace AISmartRecall.API.Services
                 APIConfig.LogError($"Get AI providers error: {ex.Message}");
                 throw;
             }
+        }
+        
+        #endregion
+        
+        #region Private Helper Methods
+        
+        /// <summary>
+        /// Kiểm tra xem status code có phải là Unauthorized không
+        /// </summary>
+        private bool IsUnauthorized(long statusCode)
+        {
+            return statusCode == 401;
+        }
+        
+        /// <summary>
+        /// Retry API call với auto-refresh token nếu gặp lỗi 401
+        /// </summary>
+        private async UniTask<(T response, long statusCode)> RetryWithTokenRefresh<T>(Func<UniTask<(T, long)>> apiCall)
+        {
+            // Thử lần đầu
+            var (response, statusCode) = await apiCall();
+            
+            // Nếu gặp lỗi 401, thử refresh token và gọi lại
+            if (response == null && IsUnauthorized(statusCode) && IsLoggedIn)
+            {
+                APIConfig.LogDebug("Received 401, attempting token refresh...");
+                
+                bool refreshed = await RefreshTokenAsync();
+                if (refreshed)
+                {
+                    // Thử lại với token mới
+                    (response, statusCode) = await apiCall();
+                }
+                else
+                {
+                    // Token refresh failed, logout
+                    APIConfig.LogError("Token refresh failed, logging out user");
+                    ClearLocalData();
+                    OnTokenExpired?.Invoke("Token expired and refresh failed");
+                }
+            }
+            
+            return (response, statusCode);
         }
         
         #endregion

@@ -7,8 +7,17 @@ namespace AISmartRecall.API
     /// </summary>
     public static class APIConfig
     {
-        // Base URL của API server
-        public static readonly string BASE_URL = "http://localhost:5011";
+        // Environment URLs
+        public static class Environment
+        {
+            public static readonly string DEVELOPMENT_HTTPS = "https://localhost:44383";
+            public static readonly string DEVELOPMENT_HTTP = "http://localhost:60441";
+            public static readonly string PRODUCTION = "https://api.aismartrecall.com"; // Sẽ update sau khi deploy
+            public static readonly string LOCAL = "http://localhost:5000";
+        }
+        
+        // Base URL của API server (có thể thay đổi theo môi trường)
+        public static string BASE_URL = Environment.DEVELOPMENT_HTTPS;
         
         // API Endpoints
         public static class Endpoints
@@ -62,6 +71,35 @@ namespace AISmartRecall.API
         public static string GetFullURL(string endpoint)
         {
             return BASE_URL + endpoint;
+        }
+        
+        /// <summary>
+        /// Thay đổi BASE_URL runtime (hữu ích cho việc test hoặc switch environment)
+        /// </summary>
+        public static void SetBaseURL(string newBaseURL)
+        {
+            BASE_URL = newBaseURL;
+            LogDebug($"BASE_URL changed to: {BASE_URL}");
+        }
+        
+        /// <summary>
+        /// Lấy thông tin hiện tại về cấu hình API
+        /// </summary>
+        public static void LogCurrentConfig()
+        {
+            LogDebug($"Current API Configuration:");
+            LogDebug($"- BASE_URL: {BASE_URL}");
+            LogDebug($"- REQUEST_TIMEOUT: {REQUEST_TIMEOUT}s");
+            LogDebug($"- DEBUG_MODE: {DEBUG_MODE}");
+            LogDebug($"- Swagger UI: {GetSwaggerURL()}");
+        }
+        
+        /// <summary>
+        /// Lấy URL của Swagger UI dựa trên BASE_URL hiện tại
+        /// </summary>
+        public static string GetSwaggerURL()
+        {
+            return BASE_URL + "/swagger";
         }
         
         /// <summary>

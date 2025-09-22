@@ -203,6 +203,14 @@ namespace AISmartRecallAPI.Controllers
                     Description = "Alibaba's Qwen models - specialized in Vietnamese and Chinese content",
                     IsAvailable = true,
                     SupportedLanguages = new List<string> { "vi", "zh", "en" }
+                },
+                new AIProviderDTO
+                {
+                    Name = AIProviders.OpenRouter,
+                    DisplayName = "OpenRouter",
+                    Description = "OpenRouter's unified API - access to multiple AI models including Qwen, Claude, and more",
+                    IsAvailable = true,
+                    SupportedLanguages = new List<string> { "vi", "en", "zh", "ja", "ko", "fr", "es", "de" }
                 }
             };
         }

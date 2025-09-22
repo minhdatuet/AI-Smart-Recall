@@ -54,7 +54,7 @@ namespace AISmartRecallAPI.Models
         public Dictionary<string, string> APIKeys { get; set; } = new Dictionary<string, string>();
 
         [BsonElement("preferredAI")]
-        public string PreferredAI { get; set; } = "chatgpt";
+        public string PreferredAI { get; set; } = "openrouter";
 
         [BsonElement("defaultLearningMode")]
         public string DefaultLearningMode { get; set; } = "understanding";

@@ -67,9 +67,7 @@ namespace AISmartRecall.SharedModels.DTOs
     [MemoryPackable]
     public partial class UpdateAPIKeysRequestDTO
     {
-        public string? OpenAIKey { get; set; }
-        public string? GeminiKey { get; set; }
-        public string? QwenKey { get; set; }
+        public string? OpenRouterKey { get; set; }
     }
 
     [MemoryPackable]
