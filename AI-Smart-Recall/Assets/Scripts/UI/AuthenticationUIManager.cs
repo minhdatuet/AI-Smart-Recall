@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
 using Cysharp.Threading.Tasks;
 using AISmartRecall.API.Services;
 using AISmartRecall.SharedModels.DTOs;
+using AISmartRecall.Managers;
 using TMPro;
 using System.Text;
 
@@ -93,6 +95,10 @@ namespace AISmartRecall.UI
             AuthenticationService.OnLoginFailed += OnLoginFailed;
             AuthenticationService.OnLogoutSuccess += OnLogoutSuccess;
             AuthenticationService.OnTokenExpired += OnTokenExpired;
+            
+            // Subscribe APIKeyManager events
+            APIKeyManager.OnAPIKeyValidated += OnAPIKeyValidated;
+            APIKeyManager.OnAPIKeyInvalid += OnAPIKeyInvalidated;
         }
         
         private void UnsubscribeEvents()
@@ -101,6 +107,10 @@ namespace AISmartRecall.UI
             AuthenticationService.OnLoginFailed -= OnLoginFailed;
             AuthenticationService.OnLogoutSuccess -= OnLogoutSuccess;
             AuthenticationService.OnTokenExpired -= OnTokenExpired;
+            
+            // Unsubscribe APIKeyManager events
+            APIKeyManager.OnAPIKeyValidated -= OnAPIKeyValidated;
+            APIKeyManager.OnAPIKeyInvalid -= OnAPIKeyInvalidated;
         }
         
         private void SetupUI()
@@ -119,7 +129,7 @@ namespace AISmartRecall.UI
             SetupLearningModeDropdown();
             
             // Set default values cho testing
-            SetDefaultTestValues();
+            // SetDefaultTestValues();
         }
         
         private void SetDefaultTestValues()
@@ -150,6 +160,33 @@ namespace AISmartRecall.UI
             {
                 _ = GetProfileAsync();
             }
+            
+            // Kiểm tra API key tự động khi start
+            CheckAPIKeyOnStartup().Forget();
+        }
+        
+        /// <summary>
+        /// Kiểm tra API key khi app khởi động
+        /// </summary>
+        private async UniTaskVoid CheckAPIKeyOnStartup()
+        {
+            // Delay một chút để UI load xong
+            await UniTask.Delay(500);
+            
+            bool hasValidKey = await APIKeyManager.AutoValidateOnStartAsync();
+            
+            if (hasValidKey)
+            {
+                _isAPIKeyValid = true;
+                UpdateStatus("API Key hợp lệ - sẵn sàng sử dụng!");
+            }
+            else
+            {
+                _isAPIKeyValid = false;
+                UpdateStatus("Chưa có API Key hợp lệ. Vui lòng nhập và test API Key.");
+            }
+            
+            UpdateUI();
         }
         
         #endregion
@@ -340,8 +377,8 @@ namespace AISmartRecall.UI
         }
         
         /// <summary>
-        /// Test và cập nhật OpenRouter API key lên server
-        /// Logic: Test trước → nếu thành công thì mới update → hiện button Start
+        /// Test và cập nhật OpenRouter API key bằng APIKeyManager
+        /// Logic: APIKeyManager sẽ tự động test và lưu cả local + server
         /// </summary>
         private async UniTaskVoid UpdateAPIKeyAsync()
         {
@@ -360,32 +397,27 @@ namespace AISmartRecall.UI
                     return;
                 }
                 
-                UpdateStatus("Đang kiểm tra API Key...");
+                UpdateStatus("Đang kiểm tra và lưu API Key...");
                 
-                // Bước 1: Test API key trước
-                bool isValid = await TestAPIKeyInternalAsync(apiKey);
+                // Sử dụng APIKeyManager để test và lưu API key
+                bool isValid = await APIKeyManager.TestAndSaveAPIKeyAsync(apiKey);
                 
-                if (!isValid)
+                if (isValid)
                 {
-                    UpdateStatus("❌ API Key không hợp lệ, không thể cập nhật!", true);
+                    _isAPIKeyValid = true;
+                    UpdateStatus("API Key hợp lệ và đã được lưu! Button Start sẵn sàng.");
+                }
+                else
+                {
                     _isAPIKeyValid = false;
-                    UpdateUI();
-                    return;
+                    UpdateStatus("API Key không hợp lệ, không thể lưu!", true);
                 }
                 
-                // Bước 2: Nếu test thành công, tiến hành update lên server
-                UpdateStatus("✅ API Key hợp lệ! Đang cập nhật lên server...");
-                
-                await _authService.UpdateAPIKeysAsync(apiKey);
-                
-                // Bước 3: Update thành công, set flag và cập nhật UI
-                _isAPIKeyValid = true;
-                UpdateStatus("🎉 Cập nhật API Key thành công! Button Start đã sẵn sàng.");
                 UpdateUI();
             }
             catch (Exception ex)
             {
-                UpdateStatus($"❌ Lỗi cập nhật API Key: {ex.Message}", true);
+                UpdateStatus($"Lỗi cập nhật API Key: {ex.Message}", true);
                 _isAPIKeyValid = false;
                 UpdateUI();
             }
@@ -399,7 +431,7 @@ namespace AISmartRecall.UI
             try
             {
                 string jsonPayload = @"{
-                    ""model"": ""qwen/qwen-2.5-coder-32b-instruct"",
+                    ""model"": ""qwen/qwen-2.5-72b-instruct:free"",
                     ""messages"": [
                         {
                             ""role"": ""user"",
@@ -435,30 +467,100 @@ namespace AISmartRecall.UI
         }
         
         /// <summary>
-        /// Bắt đầu learning session - chỉ có thể gọi sau khi API key đã được validate
+        /// Bắt đầu learning session - chuyển sang Learning scene
         /// </summary>
         private async UniTaskVoid StartLearningAsync()
         {
             try
             {
-                if (!_isAPIKeyValid)
+                // Kiểm tra API key thông qua APIKeyManager
+                if (!APIKeyManager.HasValidAPIKey())
                 {
-                    UpdateStatus("❌ Vui lòng cập nhật API Key trước!", true);
+                    UpdateStatus("Không có API Key hợp lệ! Vui lòng nhập và test API Key trước.", true);
                     return;
                 }
                 
-                UpdateStatus("🚀 Đang bắt đầu learning session...");
+                if (!AuthenticationService.IsLoggedIn)
+                {
+                    UpdateStatus("Vui lòng đăng nhập trước khi bắt đầu học!", true);
+                    return;
+                }
                 
-                // TODO: Implement logic chuyển sang learning scene hoặc khởi tạo learning session
-                // Ví dụ:
-                // SceneManager.LoadScene("LearningScene");
-                // hoặc trigger learning workflow
+                UpdateStatus("Đang chuẩn bị learning session...");
                 
-                UpdateStatus("🎯 Learning session đã được khởi tạo!");
+                // Lấy API key để truyền sang Learning scene
+                string validAPIKey = APIKeyManager.GetValidatedAPIKey();
+                Debug.Log($"[AuthenticationUI] Starting Learning session with API key: {validAPIKey?.Substring(0, Math.Min(10, validAPIKey.Length))}...");
+                
+                // Lưu thông tin cần thiết vào PlayerPrefs hoặc static class để truyền sang scene khác
+                PrepareDataForLearningScene();
+                
+                // Fade out effect (optional)
+                await UniTask.Delay(500);
+                
+                UpdateStatus("Đang chuyển đến màn hình học tập...");
+                
+                // Chấm delay để hiện thị message
+                await UniTask.Delay(1000);
+                
+                // Chuyển sang Learning scene
+                Debug.Log("[AuthenticationUI] Loading Learning scene...");
+                SceneManager.LoadScene("Learning");
             }
             catch (Exception ex)
             {
-                UpdateStatus($"❌ Lỗi khởi tạo learning session: {ex.Message}", true);
+                Debug.LogError($"[AuthenticationUI] Error starting learning session: {ex.Message}");
+                UpdateStatus($"Lỗi khởi tạo learning session: {ex.Message}", true);
+            }
+        }
+        
+        /// <summary>
+        /// Chuẩn bị dữ liệu cần truyền sang Learning scene
+        /// </summary>
+        private void PrepareDataForLearningScene()
+        {
+            try
+            {
+                // Tạo SessionData từ thông tin hiện tại
+                string apiKey = APIKeyManager.GetValidatedAPIKey();
+                
+                SessionData sessionData;
+                if (AuthenticationService.IsLoggedIn && AuthenticationService.CurrentUser != null)
+                {
+                    // Tạo từ user profile
+                    sessionData = SessionData.FromUserProfile(
+                        AuthenticationService.CurrentUser,
+                        apiKey,
+                        SceneManager.GetActiveScene().name,
+                        GetSelectedAIProvider(),
+                        GetSelectedLearningMode()
+                    );
+                }
+                else
+                {
+                    // Tạo session data mặc định cho guest
+                    sessionData = new SessionData
+                    {
+                        APIKey = apiKey,
+                        Username = "Guest",
+                        DisplayName = "Guest User",
+                        UserLevel = 1,
+                        UserExperience = 0,
+                        SessionStartTime = DateTime.Now,
+                        SourceScene = SceneManager.GetActiveScene().name,
+                        SelectedAIProvider = GetSelectedAIProvider(),
+                        SelectedLearningMode = GetSelectedLearningMode()
+                    };
+                }
+                
+                // Lưu session data
+                SessionDataManager.SaveSessionData(sessionData);
+                
+                Debug.Log($"[AuthenticationUI] Session data prepared: {SessionDataManager.GetSessionDataInfo()}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[AuthenticationUI] Error preparing learning data: {ex.Message}");
             }
         }
         
@@ -550,6 +652,32 @@ namespace AISmartRecall.UI
         private void OnTokenExpired(string message)
         {
             UpdateStatus($"Phiên đăng nhập hết hạn: {message}", true);
+            UpdateUI();
+        }
+        
+        /// <summary>
+        /// Xử lý khi APIKeyManager xác nhận API key hợp lệ
+        /// </summary>
+        private void OnAPIKeyValidated(string apiKey)
+        {
+            _isAPIKeyValid = true;
+            UpdateStatus($"API Key đã được xác thực: {apiKey.Substring(0, Math.Min(10, apiKey.Length))}...");
+            UpdateUI();
+            
+            // Hiển thị API key trong input field (nếu cần)
+            if (_openRouterKeyInput != null && string.IsNullOrEmpty(_openRouterKeyInput.text))
+            {
+                _openRouterKeyInput.text = apiKey;
+            }
+        }
+        
+        /// <summary>
+        /// Xử lý khi API key không hợp lệ
+        /// </summary>
+        private void OnAPIKeyInvalidated()
+        {
+            _isAPIKeyValid = false;
+            UpdateStatus("API Key không còn hợp lệ. Vui lòng nhập lại.", true);
             UpdateUI();
         }
         

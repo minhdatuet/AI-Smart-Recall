@@ -17,8 +17,7 @@ MonoBehaviour:
   materialHashCode: -1927209286
   m_Version: 1.1.0
   m_SourceFontFileGUID: fda4df6f844682946972ac31dc3f5403
-  m_SourceFontFile_EditorRef: {fileID: 12800000, guid: fda4df6f844682946972ac31dc3f5403,
-    type: 3}
+  m_SourceFontFile_EditorRef: {fileID: 12800000, guid: fda4df6f844682946972ac31dc3f5403, type: 3}
   m_SourceFontFile: {fileID: 12800000, guid: fda4df6f844682946972ac31dc3f5403, type: 3}
   m_AtlasPopulationMode: 1
   m_FaceInfo:
@@ -8792,9 +8791,9 @@ Material:
     - _OutlineWidth: 0
     - _PerspectiveFilter: 0.875
     - _Reflectivity: 10
-    - _ScaleRatioA: 1
-    - _ScaleRatioB: 1
-    - _ScaleRatioC: 1
+    - _ScaleRatioA: 0.9
+    - _ScaleRatioB: 0.73125
+    - _ScaleRatioC: 0.73125
     - _ScaleX: 1
     - _ScaleY: 1
     - _ShaderFlags: 0

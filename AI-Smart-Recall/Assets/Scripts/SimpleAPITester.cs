@@ -38,24 +38,24 @@ public class SimpleAPITester : MonoBehaviour
             // Test 1: Get AI Providers (no auth needed)
             Debug.Log("Test 1: Getting AI Providers...");
             var providers = await _authService.GetAIProvidersAsync();
-            Debug.Log($"✅ Found {providers?.Length ?? 0} AI providers");
+            Debug.Log($"Found {providers?.Length ?? 0} AI providers");
             
             // Test 2: Register (might fail if user exists)
             Debug.Log("Test 2: Register user...");
             try
             {
                 var registerResult = await _authService.RegisterAsync(_testUsername, _testEmail, _testPassword);
-                Debug.Log($"✅ Register result: {registerResult?.Success ?? false}");
+                Debug.Log($"Register result: {registerResult?.Success ?? false}");
             }
             catch (System.Exception ex)
             {
-                Debug.LogWarning($"⚠️ Register failed (expected if user exists): {ex.Message}");
+                Debug.LogWarning($"Register failed (expected if user exists): {ex.Message}");
             }
             
             // Test 3: Login
             Debug.Log("Test 3: Login user...");
             var loginResult = await _authService.LoginAsync(_testEmail, _testPassword);
-            Debug.Log($"✅ Login result: {loginResult?.Success ?? false}");
+            Debug.Log($"Login result: {loginResult?.Success ?? false}");
             if (loginResult != null && !string.IsNullOrEmpty(loginResult.Token))
             {
                 Debug.Log($"Token length: {loginResult.Token.Length}");
@@ -66,19 +66,19 @@ public class SimpleAPITester : MonoBehaviour
                 // Test 4: Get Profile
                 Debug.Log("Test 4: Get user profile...");
                 var profile = await _authService.GetProfileAsync();
-                Debug.Log($"✅ Got profile for: {profile?.Username ?? "Unknown"}");
+                Debug.Log($"Got profile for: {profile?.Username ?? "Unknown"}");
                 
                 // Test 5: Validate Token
                 Debug.Log("Test 5: Validate token...");
                 var isValid = await _authService.ValidateTokenAsync();
-                Debug.Log($"✅ Token valid: {isValid}");
+                Debug.Log($"Token valid: {isValid}");
             }
             
             Debug.Log("=== API Tests Completed ===");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"❌ Test failed: {ex.Message}");
+            Debug.LogError($"Test failed: {ex.Message}");
             Debug.LogError($"Stack trace: {ex.StackTrace}");
         }
     }
