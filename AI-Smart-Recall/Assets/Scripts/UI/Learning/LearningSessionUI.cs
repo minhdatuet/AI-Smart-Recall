@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -43,7 +44,7 @@ namespace AISmartRecall.UI.Learning
         // Events
         public static event Action<int> OnQuestionAnswered;
         public static event Action OnSessionPaused;
-        public static event Action OnSessionCompleted;
+        public static event Action<SessionResults> OnSessionCompleted;
         public static event Action OnSessionExited;
 
         // Properties
@@ -619,24 +620,227 @@ namespace AISmartRecall.UI.Learning
             // Create session results
             var results = CreateSessionResults();
             
-            OnSessionCompleted?.Invoke();
+            OnSessionCompleted?.Invoke(results);
             Debug.Log("[LearningSessionUI] Session completed");
         }
 
         /// <summary>
-        /// Tạo kết quả session
+        /// Tạo kết quả session chi tiết cho ResultsUI
         /// </summary>
         private SessionResults CreateSessionResults()
         {
-            // TODO: Calculate detailed results
+            if (_questions == null || CurrentSession == null)
+            {
+                return new SessionResults
+                {
+                    SessionId = Guid.NewGuid().ToString(),
+                    TotalQuestions = 0,
+                    AnsweredQuestions = 0,
+                    UserAnswers = new Dictionary<int, string>(),
+                    QuestionTimes = new Dictionary<int, float>(),
+                    CompletedAt = DateTime.Now,
+                    OverallScore = 0f,
+                    OverallAccuracy = 0f,
+                    Grade = "F",
+                    QuestionResults = new List<QuestionAnalysis>(),
+                    PerformanceByType = new Dictionary<QuestionType, PerformanceMetrics>(),
+                    TotalTimeSpent = 0f,
+                    AverageTimePerQuestion = 0f,
+                    FastestQuestion = 0f,
+                    SlowestQuestion = 0f,
+                    CompletionRate = 0f
+                };
+            }
+
+            // Tính toán kết quả chi tiết
+            var questionResults = new List<QuestionAnalysis>();
+            var typePerformance = new Dictionary<QuestionType, PerformanceMetrics>();
+            
+            float totalScore = 0f;
+            int correctAnswers = 0;
+            int totalAnswered = 0;
+            float totalTime = 0f;
+            
+            List<float> questionTimes = new List<float>();
+
+            // Xử lý từng câu hỏi
+            for (int i = 0; i < _questions.Count; i++)
+            {
+                var question = _questions[i];
+                string userAnswer = _userAnswers.ContainsKey(i) ? _userAnswers[i] : "";
+                float timeSpent = _questionTimes.ContainsKey(i) ? _questionTimes[i] : 0f;
+                
+                // Đánh giá câu trả lời
+                var analysis = EvaluateQuestionDetailed(question, userAnswer, timeSpent);
+                analysis.QuestionIndex = i;
+                questionResults.Add(analysis);
+                
+                // Cập nhật thống kê tổng thể
+                totalScore += analysis.Score;
+                if (analysis.IsCorrect) correctAnswers++;
+                if (!string.IsNullOrWhiteSpace(userAnswer)) totalAnswered++;
+                totalTime += timeSpent;
+                questionTimes.Add(timeSpent);
+                
+                // Cập nhật thống kê theo loại câu hỏi
+                UpdateTypePerformance(typePerformance, question.QuestionType, analysis);
+            }
+
+            // Tính toán metrics tổng quan
+            int totalQuestions = _questions.Count;
+            float overallAccuracy = totalQuestions > 0 ? (float)correctAnswers / totalQuestions * 100f : 0f;
+            float overallScore = totalQuestions > 0 ? totalScore / totalQuestions : 0f;
+            string grade = CalculateGrade(overallScore);
+            float averageTime = totalQuestions > 0 ? totalTime / totalQuestions : 0f;
+            float completionRate = totalQuestions > 0 ? (float)totalAnswered / totalQuestions * 100f : 0f;
+            
+            // Thời gian nhanh nhất/chậm nhất
+            float fastestTime = questionTimes.Count > 0 ? questionTimes.Where(t => t > 0).DefaultIfEmpty(0).Min() : 0f;
+            float slowestTime = questionTimes.Count > 0 ? questionTimes.Max() : 0f;
+
             return new SessionResults
             {
-                SessionId = CurrentSession?.Id,
-                TotalQuestions = _questions?.Count ?? 0,
-                AnsweredQuestions = _userAnswers.Count,
+                SessionId = CurrentSession.Id,
+                TotalQuestions = totalQuestions,
+                AnsweredQuestions = totalAnswered,
                 UserAnswers = new Dictionary<int, string>(_userAnswers),
                 QuestionTimes = new Dictionary<int, float>(_questionTimes),
-                CompletedAt = DateTime.Now
+                CompletedAt = DateTime.Now,
+                
+                // Mới: Thêm thông tin chi tiết cho ResultsUI
+                OverallScore = overallScore,
+                OverallAccuracy = overallAccuracy,
+                Grade = grade,
+                QuestionResults = questionResults,
+                PerformanceByType = typePerformance,
+                TotalTimeSpent = totalTime,
+                AverageTimePerQuestion = averageTime,
+                FastestQuestion = fastestTime,
+                SlowestQuestion = slowestTime,
+                CompletionRate = completionRate,
+                
+                // Thêm metadata
+                StartTime = CurrentSession.StartTime,
+                ContentTitle = CurrentSession.Content?.Title ?? "",
+                ContentType = CurrentSession.Content?.ContentType ?? ContentType.Understanding
+            };
+        }
+        
+        /// <summary>
+        /// Đánh giá chi tiết một câu hỏi
+        /// </summary>
+        private QuestionAnalysis EvaluateQuestionDetailed(BaseQuestion question, string userAnswer, float timeSpent)
+        {
+            var analysis = new QuestionAnalysis
+            {
+                Question = question,
+                UserAnswer = userAnswer,
+                TimeSpent = timeSpent,
+                SubmittedAt = DateTime.Now
+            };
+
+            if (string.IsNullOrWhiteSpace(userAnswer))
+            {
+                analysis.ResultType = QuestionResultType.NotAnswered;
+                analysis.Score = 0f;
+                analysis.IsCorrect = false;
+                analysis.Feedback = "Chưa trả lời";
+                return analysis;
+            }
+
+            // Kiểm tra xem câu hỏi có cần AI chấm điểm không
+            if (question.RequiresAIGrading())
+            {
+                // Tạm thời giả định 50% cho câu AI grading (sẽ được cập nhật sau)
+                analysis.Score = 5f; // 50% of 10 points
+                analysis.IsCorrect = false; // Will be determined by AI
+                analysis.ResultType = QuestionResultType.Partial;
+                analysis.Feedback = "Câu trả lời đang được AI đánh giá...";
+            }
+            else
+            {
+                // Chấm điểm tự động
+                bool isCorrect = question.ValidateAnswer(userAnswer);
+                analysis.IsCorrect = isCorrect;
+                analysis.Score = isCorrect ? question.GetMaxScore() : 0f;
+                analysis.ResultType = isCorrect ? QuestionResultType.Correct : QuestionResultType.Incorrect;
+                analysis.Feedback = isCorrect ? 
+                    "Chính xác! " + question.Explanation : 
+                    $"Chưa đúng. Đáp án: {question.GetCorrectAnswer()}. {question.Explanation}";
+            }
+
+            return analysis;
+        }
+        
+        /// <summary>
+        /// Cập nhật performance theo loại câu hỏi
+        /// </summary>
+        private void UpdateTypePerformance(Dictionary<QuestionType, PerformanceMetrics> typePerformance, 
+                                         QuestionType questionType, QuestionAnalysis analysis)
+        {
+            if (!typePerformance.ContainsKey(questionType))
+            {
+                typePerformance[questionType] = new PerformanceMetrics
+                {
+                    QuestionType = questionType,
+                    TotalQuestions = 0,
+                    CorrectAnswers = 0,
+                    IncorrectAnswers = 0,
+                    PartialAnswers = 0,
+                    NotAnswered = 0,
+                    TotalScore = 0f,
+                    TotalTime = 0f
+                };
+            }
+
+            var metrics = typePerformance[questionType];
+            metrics.TotalQuestions++;
+            metrics.TotalScore += analysis.Score;
+            metrics.TotalTime += analysis.TimeSpent;
+
+            switch (analysis.ResultType)
+            {
+                case QuestionResultType.Correct:
+                    metrics.CorrectAnswers++;
+                    break;
+                case QuestionResultType.Incorrect:
+                    metrics.IncorrectAnswers++;
+                    break;
+                case QuestionResultType.Partial:
+                    metrics.PartialAnswers++;
+                    break;
+                case QuestionResultType.NotAnswered:
+                    metrics.NotAnswered++;
+                    break;
+            }
+
+            // Tính lại accuracy
+            metrics.Accuracy = metrics.TotalQuestions > 0 ? 
+                (float)metrics.CorrectAnswers / metrics.TotalQuestions * 100f : 0f;
+            metrics.AverageScore = metrics.TotalQuestions > 0 ? 
+                metrics.TotalScore / metrics.TotalQuestions : 0f;
+            metrics.AverageTime = metrics.TotalQuestions > 0 ? 
+                metrics.TotalTime / metrics.TotalQuestions : 0f;
+        }
+        
+        /// <summary>
+        /// Tính grade dựa trên điểm số
+        /// </summary>
+        private string CalculateGrade(float averageScore)
+        {
+            return averageScore switch
+            {
+                >= 9.0f => "A+",
+                >= 8.5f => "A",
+                >= 8.0f => "A-",
+                >= 7.5f => "B+",
+                >= 7.0f => "B",
+                >= 6.5f => "B-",
+                >= 6.0f => "C+",
+                >= 5.5f => "C",
+                >= 5.0f => "C-",
+                >= 4.0f => "D",
+                _ => "F"
             };
         }
 
@@ -670,6 +874,7 @@ namespace AISmartRecall.UI.Learning
     [Serializable]
     public class SessionResults
     {
+        // Basic session info
         public string SessionId { get; set; }
         public int TotalQuestions { get; set; }
         public int AnsweredQuestions { get; set; }
@@ -677,7 +882,103 @@ namespace AISmartRecall.UI.Learning
         public Dictionary<int, float> QuestionTimes { get; set; }
         public DateTime CompletedAt { get; set; }
         
+        // Detailed results - NEW
+        public float OverallScore { get; set; } // Average score out of 10
+        public float OverallAccuracy { get; set; } // Percentage correct
+        public string Grade { get; set; } // A+, A, B+, etc.
+        public List<QuestionAnalysis> QuestionResults { get; set; }
+        public Dictionary<QuestionType, PerformanceMetrics> PerformanceByType { get; set; }
+        
+        // Time analytics - NEW
+        public float TotalTimeSpent { get; set; } // Total seconds
+        public float AverageTimePerQuestion { get; set; } // Average seconds per question
+        public float FastestQuestion { get; set; } // Fastest question time
+        public float SlowestQuestion { get; set; } // Slowest question time
+        public float CompletionRate { get; set; } // Percentage of questions answered
+        
+        // Session metadata - NEW
+        public DateTime StartTime { get; set; }
+        public string ContentTitle { get; set; }
+        public ContentType ContentType { get; set; }
+        
+        // Calculated properties
         public float CompletionPercentage => TotalQuestions > 0 ? (float)AnsweredQuestions / TotalQuestions * 100f : 0f;
+        
+        /// <summary>
+        /// Số câu đúng
+        /// </summary>
+        public int CorrectAnswers => QuestionResults?.Count(q => q.IsCorrect) ?? 0;
+        
+        /// <summary>
+        /// Số câu sai
+        /// </summary>
+        public int IncorrectAnswers => QuestionResults?.Count(q => q.ResultType == QuestionResultType.Incorrect) ?? 0;
+        
+        /// <summary>
+        /// Số câu đúng một phần
+        /// </summary>
+        public int PartialAnswers => QuestionResults?.Count(q => q.ResultType == QuestionResultType.Partial) ?? 0;
+        
+        /// <summary>
+        /// Số câu chưa trả lời
+        /// </summary>
+        public int UnansweredQuestions => QuestionResults?.Count(q => q.ResultType == QuestionResultType.NotAnswered) ?? 0;
+        
+        /// <summary>
+        /// Có phải session hoàn thành tốt không (>= 70% accuracy)
+        /// </summary>
+        public bool IsGoodSession => OverallAccuracy >= 70f;
+        
+        /// <summary>
+        /// Màu sắc đại diện cho grade
+        /// </summary>
+        public Color GradeColor
+        {
+            get
+            {
+                return Grade switch
+                {
+                    "A+" or "A" => new Color(0f, 0.8f, 0f, 1f), // Green
+                    "A-" or "B+" or "B" => new Color(0.5f, 0.8f, 0f, 1f), // Yellow-Green
+                    "B-" or "C+" or "C" => new Color(0.8f, 0.8f, 0f, 1f), // Yellow
+                    "C-" or "D" => new Color(0.8f, 0.5f, 0f, 1f), // Orange
+                    _ => new Color(0.8f, 0f, 0f, 1f) // Red
+                };
+            }
+        }
+        
+        /// <summary>
+        /// Thời gian làm bài định dạng readable (VD: "5 phút 30 giây")
+        /// </summary>
+        public string FormattedTotalTime
+        {
+            get
+            {
+                var totalSeconds = (int)TotalTimeSpent;
+                var minutes = totalSeconds / 60;
+                var seconds = totalSeconds % 60;
+                
+                if (minutes > 0)
+                    return $"{minutes} phút {seconds} giây";
+                else
+                    return $"{seconds} giây";
+            }
+        }
+        
+        /// <summary>
+        /// Thời gian trung bình mỗi câu định dạng readable
+        /// </summary>
+        public string FormattedAverageTime
+        {
+            get
+            {
+                var avgSeconds = (int)AverageTimePerQuestion;
+                if (avgSeconds >= 60)
+                    return $"{avgSeconds / 60} phút {avgSeconds % 60} giây";
+                else
+                    return $"{avgSeconds} giây";
+            }
+        }
     }
     
     /// <summary>
@@ -689,5 +990,110 @@ namespace AISmartRecall.UI.Learning
         public float percentage;
         public string explanation;
         public string suggestions;
+    }
+    
+    /// <summary>
+    /// Phân tích chi tiết kết quả từng câu hỏi
+    /// </summary>
+    [Serializable]
+    public class QuestionAnalysis
+    {
+        public int QuestionIndex { get; set; }
+        public BaseQuestion Question { get; set; }
+        public string UserAnswer { get; set; }
+        public bool IsCorrect { get; set; }
+        public float Score { get; set; }
+        public QuestionResultType ResultType { get; set; }
+        public string Feedback { get; set; }
+        public float TimeSpent { get; set; }
+        public DateTime SubmittedAt { get; set; }
+        public AIGradingResult AIResult { get; set; } // Nếu có AI grading
+        
+        /// <summary>
+        /// Tỷ lệ phần trăm điểm số (0-100)
+        /// </summary>
+        public float ScorePercentage => Question != null ? (Score / Question.GetMaxScore()) * 100f : 0f;
+        
+        /// <summary>
+        /// Có phải câu trả lời tốt không (>= 70%)
+        /// </summary>
+        public bool IsGoodAnswer => ScorePercentage >= 70f;
+    }
+    
+    /// <summary>
+    /// Metrics hiệu suất theo loại câu hỏi
+    /// </summary>
+    [Serializable]
+    public class PerformanceMetrics
+    {
+        public QuestionType QuestionType { get; set; }
+        public int TotalQuestions { get; set; }
+        public int CorrectAnswers { get; set; }
+        public int IncorrectAnswers { get; set; }
+        public int PartialAnswers { get; set; }
+        public int NotAnswered { get; set; }
+        public float TotalScore { get; set; }
+        public float TotalTime { get; set; }
+        
+        // Calculated properties
+        public float Accuracy { get; set; }
+        public float AverageScore { get; set; }
+        public float AverageTime { get; set; }
+        public float CompletionRate => TotalQuestions > 0 ? (float)(TotalQuestions - NotAnswered) / TotalQuestions * 100f : 0f;
+        
+        /// <summary>
+        /// Tên hiển thị của loại câu hỏi
+        /// </summary>
+        public string DisplayName => QuestionType.GetVietnameseName();
+        
+        /// <summary>
+        /// Có phải performance tốt không (>= 70% accuracy)
+        /// </summary>
+        public bool IsGoodPerformance => Accuracy >= 70f;
+        
+        /// <summary>
+        /// Level hiệu suất: Excellent, Good, Fair, Poor
+        /// </summary>
+        public string PerformanceLevel
+        {
+            get
+            {
+                return Accuracy switch
+                {
+                    >= 90f => "Xuất sắc",
+                    >= 70f => "Tốt",
+                    >= 50f => "Trung bình",
+                    _ => "Cần cải thiện"
+                };
+            }
+        }
+        
+        /// <summary>
+        /// Màu sắc đại diện cho performance level
+        /// </summary>
+        public Color PerformanceColor
+        {
+            get
+            {
+                return Accuracy switch
+                {
+                    >= 90f => new Color(0f, 0.8f, 0f, 1f), // Green
+                    >= 70f => new Color(0.5f, 0.8f, 0f, 1f), // Yellow-Green  
+                    >= 50f => new Color(0.8f, 0.8f, 0f, 1f), // Yellow
+                    _ => new Color(0.8f, 0f, 0f, 1f) // Red
+                };
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Enum cho loại kết quả câu hỏi
+    /// </summary>
+    public enum QuestionResultType
+    {
+        Correct,
+        Incorrect, 
+        Partial,
+        NotAnswered
     }
 }

@@ -367,8 +367,35 @@ namespace AISmartRecall.Managers
         /// </summary>
         private void OnBackToMainMenu()
         {
-            // TODO: Load main menu scene hoặc authentication scene
             Debug.Log("[LearningScene] Back to main menu requested");
+            
+            try
+            {
+                // Clear current session data
+                SessionDataManager.ClearSessionData();
+                
+                // Kiểm tra scene nào cần load
+                string targetScene = "Feature"; // Default scene
+                
+                // Nếu có session data, sử dụng source scene
+                if (SessionDataManager.HasValidSessionData())
+                {
+                    var sessionData = SessionDataManager.GetSessionData();
+                    targetScene = sessionData.SourceScene ?? "Feature";
+                }
+                
+                Debug.Log($"[LearningScene] Loading scene: {targetScene}");
+                
+                // Load scene bằng UnityEngine.SceneManagement
+                UnityEngine.SceneManagement.SceneManager.LoadScene(targetScene);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[LearningScene] Error loading main menu: {ex.Message}");
+                
+                // Fallback: load Authentication scene
+                UnityEngine.SceneManagement.SceneManager.LoadScene("Feature");
+            }
         }
         
         /// <summary>
@@ -402,10 +429,10 @@ namespace AISmartRecall.Managers
         /// <summary>
         /// Xử lý khi session hoàn thành
         /// </summary>
-        private void OnSessionCompleted()
+        private void OnSessionCompleted(SessionResults results)
         {
             Debug.Log("[LearningScene] Session completed");
-            ShowResults();
+            ShowResults(results);
         }
         
         /// <summary>
@@ -456,7 +483,7 @@ namespace AISmartRecall.Managers
         {
             Debug.Log("[LearningScene] Results closed");
             // Default action - go back to question selection
-            ChangeState(LearningSceneState.QuestionSelection);
+            ChangeState(LearningSceneState.ContentInput);
         }
         
         #endregion
@@ -547,14 +574,14 @@ namespace AISmartRecall.Managers
         private void EndLearningSession()
         {
             ChangeState(LearningSceneState.Results);
-            ShowResults();
+            // ShowResults();
             Debug.Log("[LearningScene] Learning session ended");
         }
         
         /// <summary>
         /// Hiển thị kết quả session
         /// </summary>
-        private void ShowResults()
+        private void ShowResults(SessionResults results)
         {
             if (_currentLearningSession == null || _resultsUI == null)
             {
@@ -563,21 +590,7 @@ namespace AISmartRecall.Managers
             }
             
             // Create SessionResults from LearningSession
-            var sessionResults = new SessionResults
-            {
-                SessionId = _currentLearningSession.Id,
-                TotalQuestions = _currentLearningSession.TotalQuestions,
-                AnsweredQuestions = _currentLearningSession.Results.Count,
-                UserAnswers = _currentLearningSession.Results.ToDictionary(
-                    r => _currentLearningSession.Questions.IndexOf(r.Question), 
-                    r => r.UserAnswer
-                ),
-                QuestionTimes = _currentLearningSession.Results.ToDictionary(
-                    r => _currentLearningSession.Questions.IndexOf(r.Question),
-                    r => r.TimeSpent
-                ),
-                CompletedAt = _currentLearningSession.EndTime
-            };
+            var sessionResults = results;
             
             // Show results UI
             _resultsUI.ShowResults(sessionResults, _currentLearningSession.Questions, sessionResults.UserAnswers);

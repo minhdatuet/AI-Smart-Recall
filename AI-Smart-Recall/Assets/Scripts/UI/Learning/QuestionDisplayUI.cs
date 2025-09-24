@@ -64,6 +64,15 @@ namespace AISmartRecall.UI.Learning
         private List<TMP_InputField> _currentBlankInputs = new List<TMP_InputField>();
         private Dictionary<string, string> _currentMatchingPairs = new Dictionary<string, string>();
         private string _lastAnswer = "";
+        
+        // Matching game state
+        private Button _selectedLeftItem;
+        private Button _selectedRightItem;
+        private string _selectedLeftText = "";
+        private string _selectedRightText = "";
+        private Color _defaultItemColor = Color.white;
+        private Color _selectedItemColor = new Color(0.7f, 0.9f, 1f, 1f); // Light blue
+        private Color _matchedItemColor = new Color(0.7f, 1f, 0.7f, 1f); // Light green
 
         private void Awake()
         {
@@ -177,7 +186,8 @@ namespace AISmartRecall.UI.Learning
                     break;
                     
                 case QuestionType.MatchConcepts:
-                    SetupMatchingQuestion(question);
+                    // SetupMatchingQuestion(question);
+                    SetupMultipleChoiceQuestion(question);
                     break;
                     
                 case QuestionType.Flashcard:
@@ -312,7 +322,9 @@ namespace AISmartRecall.UI.Learning
             if (_matchingArea == null) return;
 
             _matchingArea.SetActive(true);
-            _currentMatchingPairs.Clear();
+            
+            // Reset matching game state
+            ResetMatchingGameState();
 
             // For now, create simple matching from options if available
             var options = question.GetOptions();
@@ -348,15 +360,24 @@ namespace AISmartRecall.UI.Learning
         /// </summary>
         private void CreateMatchingItems(Transform parent, List<string> items, bool isLeftSide)
         {
+            // Clear existing items
+            foreach (Transform child in parent)
+            {
+                DestroyImmediate(child.gameObject);
+            }
+            
             foreach (string item in items)
             {
                 var itemObj = Instantiate(_matchingItemPrefab, parent);
                 var text = itemObj.GetComponentInChildren<TextMeshProUGUI>();
                 var button = itemObj.GetComponent<Button>();
+                var image = itemObj.GetComponent<Image>();
                 
                 if (text) text.text = item;
+                if (image) image.color = _defaultItemColor;
                 if (button)
                 {
+                    button.interactable = true;
                     button.onClick.AddListener(() => OnMatchingItemClicked(item, isLeftSide));
                 }
             }
@@ -367,8 +388,22 @@ namespace AISmartRecall.UI.Learning
         /// </summary>
         private void OnMatchingItemClicked(string item, bool isLeftSide)
         {
-            // TODO: Implement matching logic
+            var clickedButton = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject?.GetComponent<Button>();
+            if (clickedButton == null) return;
+
             Debug.Log($"[QuestionDisplayUI] Matching item clicked: {item} (Left: {isLeftSide})");
+            
+            if (isLeftSide)
+            {
+                HandleLeftItemSelection(item, clickedButton);
+            }
+            else
+            {
+                HandleRightItemSelection(item, clickedButton);
+            }
+            
+            // Kiểm tra và tạo matching pair nếu có thể
+            TryCreateMatchingPair();
         }
 
         /// <summary>
@@ -537,8 +572,8 @@ namespace AISmartRecall.UI.Learning
                 QuestionType.ScenarioQuestion => !string.IsNullOrWhiteSpace(_textInputField?.text),
                 QuestionType.ExactTyping => !string.IsNullOrWhiteSpace(_textInputField?.text),
                 QuestionType.TrueFalse => (_trueToggle?.isOn ?? false) || (_falseToggle?.isOn ?? false),
-                QuestionType.MatchConcepts => _currentMatchingPairs.Count > 0,
-                QuestionType.Flashcard => !string.IsNullOrWhiteSpace(_textInputField?.text),
+                QuestionType.MatchConcepts => _currentMatchingPairs.Count > 0 || _currentChoiceToggles.Any(t => t.isOn),
+                QuestionType.Flashcard => true,
                 _ => false
             };
         }
@@ -593,7 +628,8 @@ namespace AISmartRecall.UI.Learning
                     SetTrueFalseAnswer(answer);
                     break;
                 case QuestionType.MatchConcepts:
-                    SetMatchingAnswer(answer);
+                    // SetMatchingAnswer(answer);
+                    SetMultipleChoiceAnswer(answer);
                     break;
             }
 
@@ -628,7 +664,9 @@ namespace AISmartRecall.UI.Learning
                     if (_falseToggle) _falseToggle.isOn = false;
                     break;
                 case QuestionType.MatchConcepts:
-                    _currentMatchingPairs.Clear();
+                    // ResetMatchingGameState();
+                    foreach (var toggle in _currentChoiceToggles)
+                        if (toggle) toggle.isOn = false;
                     break;
             }
 
@@ -718,6 +756,200 @@ namespace AISmartRecall.UI.Learning
                 }
             }
         }
+        #endregion
+        
+        #region Matching Game Logic
+        
+        /// <summary>
+        /// Xử lý chọn item bên trái
+        /// </summary>
+        private void HandleLeftItemSelection(string item, Button clickedButton)
+        {
+            // Nếu item này đã được match, không cho phép chọn lại
+            if (IsItemMatched(item, true))
+            {
+                Debug.Log($"[QuestionDisplayUI] Item '{item}' đã được ghép nối");
+                return;
+            }
+            
+            // Nếu đang chọn item khác, bỏ chọn item cũ
+            if (_selectedLeftItem != null && _selectedLeftItem != clickedButton)
+            {
+                SetItemVisualState(_selectedLeftItem, _defaultItemColor);
+            }
+            
+            // Toggle selection
+            if (_selectedLeftItem == clickedButton)
+            {
+                // Bỏ chọn
+                _selectedLeftItem = null;
+                _selectedLeftText = "";
+                SetItemVisualState(clickedButton, _defaultItemColor);
+                Debug.Log($"[QuestionDisplayUI] Bỏ chọn item trái: {item}");
+            }
+            else
+            {
+                // Chọn item mới
+                _selectedLeftItem = clickedButton;
+                _selectedLeftText = item;
+                SetItemVisualState(clickedButton, _selectedItemColor);
+                Debug.Log($"[QuestionDisplayUI] Chọn item trái: {item}");
+            }
+        }
+        
+        /// <summary>
+        /// Xử lý chọn item bên phải
+        /// </summary>
+        private void HandleRightItemSelection(string item, Button clickedButton)
+        {
+            // Nếu item này đã được match, không cho phép chọn lại
+            if (IsItemMatched(item, false))
+            {
+                Debug.Log($"[QuestionDisplayUI] Item '{item}' đã được ghép nối");
+                return;
+            }
+            
+            // Nếu đang chọn item khác, bỏ chọn item cũ
+            if (_selectedRightItem != null && _selectedRightItem != clickedButton)
+            {
+                SetItemVisualState(_selectedRightItem, _defaultItemColor);
+            }
+            
+            // Toggle selection
+            if (_selectedRightItem == clickedButton)
+            {
+                // Bỏ chọn
+                _selectedRightItem = null;
+                _selectedRightText = "";
+                SetItemVisualState(clickedButton, _defaultItemColor);
+                Debug.Log($"[QuestionDisplayUI] Bỏ chọn item phải: {item}");
+            }
+            else
+            {
+                // Chọn item mới
+                _selectedRightItem = clickedButton;
+                _selectedRightText = item;
+                SetItemVisualState(clickedButton, _selectedItemColor);
+                Debug.Log($"[QuestionDisplayUI] Chọn item phải: {item}");
+            }
+        }
+        
+        /// <summary>
+        /// Thử tạo matching pair
+        /// </summary>
+        private void TryCreateMatchingPair()
+        {
+            // Kiểm tra có cả hai item được chọn không
+            if (_selectedLeftItem == null || _selectedRightItem == null ||
+                string.IsNullOrEmpty(_selectedLeftText) || string.IsNullOrEmpty(_selectedRightText))
+            {
+                return;
+            }
+            
+            // Tạo matching pair
+            _currentMatchingPairs[_selectedLeftText] = _selectedRightText;
+            
+            Debug.Log($"[QuestionDisplayUI] Tạo matching pair: '{_selectedLeftText}' <-> '{_selectedRightText}'");
+            
+            // Cập nhật visual state thành matched
+            SetItemVisualState(_selectedLeftItem, _matchedItemColor);
+            SetItemVisualState(_selectedRightItem, _matchedItemColor);
+            
+            // Disable buttons để không thể click lại
+            _selectedLeftItem.interactable = false;
+            _selectedRightItem.interactable = false;
+            
+            // Reset selection
+            _selectedLeftItem = null;
+            _selectedRightItem = null;
+            _selectedLeftText = "";
+            _selectedRightText = "";
+            
+            // Trigger answer changed event
+            OnAnswerChanged?.Invoke(GetMatchingAnswer());
+            
+            // Update visual state
+            UpdateQuestionVisuals(HasAnswer());
+        }
+        
+        /// <summary>
+        /// Kiểm tra item đã được match chưa
+        /// </summary>
+        private bool IsItemMatched(string item, bool isLeftSide)
+        {
+            if (isLeftSide)
+            {
+                return _currentMatchingPairs.ContainsKey(item);
+            }
+            else
+            {
+                return _currentMatchingPairs.ContainsValue(item);
+            }
+        }
+        
+        /// <summary>
+        /// Set visual state cho matching item
+        /// </summary>
+        private void SetItemVisualState(Button button, Color color)
+        {
+            if (button == null) return;
+            
+            var image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = color;
+            }
+        }
+        
+        /// <summary>
+        /// Reset matching game state
+        /// </summary>
+        private void ResetMatchingGameState()
+        {
+            _selectedLeftItem = null;
+            _selectedRightItem = null;
+            _selectedLeftText = "";
+            _selectedRightText = "";
+            _currentMatchingPairs.Clear();
+            
+            // Reset visual states của tất cả matching items
+            ResetAllMatchingItemsVisual();
+        }
+        
+        /// <summary>
+        /// Reset visual state của tất cả matching items
+        /// </summary>
+        private void ResetAllMatchingItemsVisual()
+        {
+            // Reset left side items
+            if (_leftMatchingParent != null)
+            {
+                foreach (Transform child in _leftMatchingParent)
+                {
+                    var button = child.GetComponent<Button>();
+                    if (button != null)
+                    {
+                        SetItemVisualState(button, _defaultItemColor);
+                        button.interactable = true;
+                    }
+                }
+            }
+            
+            // Reset right side items
+            if (_rightMatchingParent != null)
+            {
+                foreach (Transform child in _rightMatchingParent)
+                {
+                    var button = child.GetComponent<Button>();
+                    if (button != null)
+                    {
+                        SetItemVisualState(button, _defaultItemColor);
+                        button.interactable = true;
+                    }
+                }
+            }
+        }
+        
         #endregion
 
         private void UnsubscribeEvents()

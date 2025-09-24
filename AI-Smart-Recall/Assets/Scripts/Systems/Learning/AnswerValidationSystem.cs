@@ -152,7 +152,8 @@ namespace AISmartRecall.Systems.Learning
                     return ValidateFillInBlank(question, userAnswer, result);
                 
                 case QuestionType.MatchConcepts:
-                    return ValidateMatching(question, userAnswer, result);
+                    // return ValidateMatching(question, userAnswer, result);
+                    return ValidateMultipleChoice(question, userAnswer, result);
                     
                 case QuestionType.ExactTyping:
                 case QuestionType.ShortAnswer:
@@ -422,7 +423,7 @@ namespace AISmartRecall.Systems.Learning
             var prompt = $@"
 Hãy chấm điểm câu trả lời sau đây:
 
-CÂUHỎI: {question.Question}
+CÂU HỎI: {question.Question}
 
 CONTEXT: {context ?? "Không có context cụ thể"}
 

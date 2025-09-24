@@ -97,7 +97,7 @@ namespace AISmartRecall.UI.Learning
             if (_continueButton) _continueButton.onClick.AddListener(RequestContinue);
 
             // Initially hide panel
-            SetVisible(false);
+            // SetVisible(false);
         }
 
         /// <summary>
@@ -696,15 +696,5 @@ namespace AISmartRecall.UI.Learning
         public float Accuracy { get; set; }
     }
 
-    /// <summary>
-    /// Loại kết quả câu hỏi
-    /// </summary>
-    public enum QuestionResultType
-    {
-        NotAnswered,
-        Correct,
-        Incorrect,
-        Partial
-    }
     #endregion
 }

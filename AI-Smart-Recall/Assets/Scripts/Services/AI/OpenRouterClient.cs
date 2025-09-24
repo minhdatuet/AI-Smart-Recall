@@ -272,7 +272,7 @@ Chỉ trả lời bằng JSON hợp lệ, không thêm text khác.
                     "Tạo câu đúng/sai về nội dung. correctAnswer là 'true' hoặc 'false'. options chứa ['Đúng', 'Sai'].",
 
                 QuestionType.MatchConcepts => 
-                    "Tạo câu ghép khái niệm. question mô tả yêu cầu ghép, options chứa các cặp concept-definition cần ghép, correctAnswer mô tả cách ghép đúng.",
+                    "Tạo câu ghép khái niệm. question mô tả yêu cầu ghép với ít nhất 3 cặp có thể ghép có trong nội dung câu hỏi (dạng 1. 2. 3. nối với A. B. C.), options chứa 4 lựa chọn về các cặp concept-definition có thể ghép trong đó có 1 lựa chọn đúng (ví dụ 1A-2B-3C, 1C-2A-3B, 1C-2B-3A, 1B-2A-3C).",
 
                 QuestionType.ShortAnswer => 
                     "Tạo câu hỏi tự luận ngắn (2-3 câu). Yêu cầu giải thích, phân tích hoặc tóm tắt. correctAnswer là câu trả lời mẫu.",

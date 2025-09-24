@@ -158,11 +158,9 @@ namespace AISmartRecall.UI
             // await GetAIProvidersAsync();
             if (AuthenticationService.IsLoggedIn)
             {
-                _ = GetProfileAsync();
+                GetProfileAsync().Forget();
+                CheckAPIKeyOnStartup().Forget();
             }
-            
-            // Kiểm tra API key tự động khi start
-            CheckAPIKeyOnStartup().Forget();
         }
         
         /// <summary>
